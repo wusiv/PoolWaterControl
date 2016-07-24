@@ -25,10 +25,58 @@
 
 
 
-void setup() {
 
+#include <RCSwitch.h>
+/* pull down resistor
+*  Pull-Down Resistor. 
+*/
+int push = 0;   // counter for the number of button presses
+int buttonState = 0;         // current state of the button
+int lastButtonState = 0;     // previous state of the button
+int pump = 0;
+int button = 10;
+int ledGreen = 13;
+RCSwitch sw = RCSwitch();
+
+void setup()
+{
+	Serial.begin(115200);
+	pinMode(ledGreen, OUTPUT);
+	pinMode(button, INPUT);
+	sw.enableTransmit(2);
 }
 
-void loop() {
+void loop()
+{
 
+	buttonState = digitalRead(button);
+	Serial.println(F("*******D E B U G*******"));
+	if (buttonState != lastButtonState) {  
+
+		if (buttonState == HIGH) {
+			delay(500);// buttondan dolayý ark olusumunu engellemek icin bekleme
+
+			if (push >= 1) {
+				push = 0;
+			}
+			else {
+				push++;
+			}
+		}
+
+	}
+
+	if ((push % 2) == 0) {  // Pump close (0 mod 2=0)
+		digitalWrite(ledGreen, LOW);
+		Serial.println(F("* Pump Close"));
+		pump = 0;
+	}
+	else {
+
+		digitalWrite(ledGreen, HIGH);
+		Serial.println(F("* Pump Open"));
+		pump = 1;
+	}
+	Serial.println(F("*********************\n"));
+	sw.send(pump, 24);
 }

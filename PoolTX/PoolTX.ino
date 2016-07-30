@@ -17,66 +17,92 @@
 * You should have received a copy of the GNU Lesser General Public License
 * along with Arduino Pool Water Level. If not, see <http://www.gnu.org/licenses/>.
 *
-*
-*
-*
-*
 */
 
 
-
-
-#include <RCSwitch.h>
 /* pull down resistor
 *  Pull-Down Resistor. 
 */
+
+#include <RCSwitch.h>
 int push = 0;   // counter for the number of button presses
 int buttonState = 0;         // current state of the button
-int lastButtonState = 0;     // previous state of the button
+//int lastButtonState = 0;     // previous state of the button
 int pump = 0;
-int button = 10;
+
+/* INPUT, OUTPUT Interfaces*/
+int button = 7;
 int ledGreen = 13;
-RCSwitch sw = RCSwitch();
+
+RCSwitch rc = RCSwitch();
+
 
 void setup()
 {
-	Serial.begin(115200);
+	Serial.begin(9600);
 	pinMode(ledGreen, OUTPUT);
 	pinMode(button, INPUT);
-	sw.enableTransmit(2);
+	rc.enableTransmit(10);
 }
 
 void loop()
 {
+	
+		buttonState = digitalRead(button);
+		Serial.println(F("*******D E B U G*******"));
+		//delay(1000);
+	//	if (buttonState != lastButtonState) {
+			/*Serial.print("ButtonState : ");
+			Serial.println(buttonState);
+			Serial.print("lastButtonState : ");
+			Serial.println(lastButtonState);*/
+			if (buttonState) {
+				delay(500);// buttondan dolayý ark olusumunu engellemek icin bekleme
 
-	buttonState = digitalRead(button);
-	Serial.println(F("*******D E B U G*******"));
-	if (buttonState != lastButtonState) {  
-
-		if (buttonState == HIGH) {
-			delay(500);// buttondan dolayý ark olusumunu engellemek icin bekleme
-
-			if (push >= 1) {
-				push = 0;
+				if (push >= 1) {
+					push = 0;
+					Serial.print("Push is : ");
+					Serial.println(push);
+				}
+				else {
+					push++;
+					Serial.print("Push is : ");
+					Serial.println(push);
+				}
 			}
-			else {
-				push++;
+			
+
+		//}
+		//lastButtonState = push;
+			if ((push % 2) == 0) {  // Pump close (0 mod 2=0)
+				digitalWrite(ledGreen, LOW);
+				Serial.println(F("* Pump is OFF"));
+				/*Serial.print("* Push is : ");
+				Serial.println(push);
+				Serial.print("* ButtonState : ");
+				Serial.println(buttonState);
+				Serial.print("* lastButtonState : ");
+				Serial.println(lastButtonState);*/
+				pump = 10;  // pump is 
 			}
-		}
+			else/* if((push%2)==1)*/ {
+				digitalWrite(ledGreen, HIGH);
+				Serial.println(F("* Pump is ON"));
+				/*Serial.print("* Push is : ");
+				Serial.println(push);
+				Serial.print("* ButtonState : ");
+				Serial.println(buttonState);
+				Serial.print("* lastButtonState : ");
+				Serial.println(lastButtonState);*/
+				pump = 11;
+			}
+		
+		Serial.println(F("*********************\n"));
+		//delay(1000);
+		//rc.send((millis() / 1000), 24);
+		rc.send(pump, 24);
 
-	}
-
-	if ((push % 2) == 0) {  // Pump close (0 mod 2=0)
-		digitalWrite(ledGreen, LOW);
-		Serial.println(F("* Pump Close"));
-		pump = 0;
-	}
-	else {
-
-		digitalWrite(ledGreen, HIGH);
-		Serial.println(F("* Pump Open"));
-		pump = 1;
-	}
-	Serial.println(F("*********************\n"));
-	sw.send(pump, 24);
+		
 }
+
+			

@@ -23,12 +23,35 @@
 *
 */
 
-#include <RCSwitch.h>
-void setup() {
 
+
+#include <RCSwitch.h>
+
+RCSwitch rc = RCSwitch();
+
+void setup() {
+	Serial.begin(9600);
+	rc.enableReceive(0);  
 }
 
-
 void loop() {
-  
+	if (rc.available()) {
+
+		int value = rc.getReceivedValue();
+		Serial.print("Value :");
+		Serial.print(value);
+		switch (value)
+		{
+		case 10:
+			Serial.println(" - Pump is OFF");
+			break;
+		case 11:
+			Serial.println(" - Pump is ON");
+			break;
+		default:
+			break;
+		}
+	}
+
+	rc.resetAvailable();
 }

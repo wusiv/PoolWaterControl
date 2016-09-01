@@ -25,7 +25,6 @@
 
 
 
-#include <Arduino.h>
 #include <SoftwareSerial.h>
 
 SoftwareSerial rf (8,9);

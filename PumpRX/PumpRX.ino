@@ -25,19 +25,19 @@
 
 
 
-#include <RCSwitch.h>
+#include <Arduino.h>
+#include <SoftwareSerial.h>
 
-RCSwitch rc = RCSwitch();
+SoftwareSerial rf (8,9);
 
 void setup() {
 	Serial.begin(9600);
-	rc.enableReceive(0);  
+	rf.begin(9600);
 }
 
 void loop() {
-	if (rc.available()) {
 
-		int value = rc.getReceivedValue();
+		int value = 0
 		Serial.print("Value :");
 		Serial.print(value);
 		switch (value)
@@ -53,5 +53,3 @@ void loop() {
 		}
 	}
 
-	rc.resetAvailable();
-}

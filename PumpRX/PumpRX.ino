@@ -26,9 +26,10 @@
 
 
 #include <SoftwareSerial.h>
+#define DEBUG;
 
-SoftwareSerial rf (8,9);
-
+SoftwareSerial rf(8, 9);
+int value =10;
 void setup() {
 	Serial.begin(9600);
 	rf.begin(9600);
@@ -36,19 +37,40 @@ void setup() {
 
 void loop() {
 
-	int value = 0;
-		Serial.print("Value :");
-		Serial.print(value);
-		switch (value)
-		{
-		case 10:
-			Serial.println(" - Pump is OFF");
-			break;
-		case 11:
-			Serial.println(" - Pump is ON");
-			break;
-		default:
-			break;
-		}
+	if (rf.available()) {
+		value = rf.read();
+		rf.flush();
 	}
+
+#ifdef DEBUG
+	Serial.print("Value : "); Serial.println(value);
+#endif // DEBUG
+
+
+switch (value)
+	{
+	case 10:
+#ifdef DEBUG
+		Serial.println(" - Pump is OFF");
+#endif // DEBUG
+
+		break;
+
+	case 11:
+#ifdef DEBUG
+		Serial.println(" - Pump is ON");
+#endif // DEBUG
+		break;
+
+	case 21:
+#ifdef DEBUG
+		Serial.println(" - Pump is waiting for Night Run");
+#endif // DEBUG
+		break;
+
+
+	default:
+		break;
+	}
+}
 

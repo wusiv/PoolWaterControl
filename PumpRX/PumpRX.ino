@@ -36,7 +36,7 @@ void setup() {
 
 void loop() {
 
-		int value = 0
+	int value = 0;
 		Serial.print("Value :");
 		Serial.print(value);
 		switch (value)

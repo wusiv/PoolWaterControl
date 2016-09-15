@@ -4,16 +4,16 @@
 * Author:	Yusuf KALSEN
 * URL: http://github.com/wusiv
 *
-* This project for my little Walnut orchard. 
+* This project for my little Walnut orchard.
 *
 * Electric Price  ;
 * NORMAL(Kw/$)		:0,1452 $
 * EXPENSIVE(Kw/$)	:0,2179 $ (+ 50% than Normal)
 * OFF-PRICE (Kw/$)	:0,0927 $ (- 36% than Normal )
-* 
-* 06:00 - 16:59 - is NORMAL 
-* 17:00 - 21:59 - is EXPENSIVE  
-* 22:00 - 05:59 - is OFF-PRICE 
+*
+* 06:00 - 16:59 - is NORMAL
+* 17:00 - 21:59 - is EXPENSIVE
+* 22:00 - 05:59 - is OFF-PRICE
 *
 *
 *
@@ -43,37 +43,42 @@
 #include <RTClib.h>
 #include <EEPROM.h>
 #include <SoftwareSerial.h>
-#define ENABLE_DEBUG
+
+
+
+//#define ENABLE_DEBUG
 #define RUN_NOW		11
 #define RUN_NIGHT	21
 #define STOP	10
 #define PUMP_RUN_NOW 111
 #define PUMP_RUN_NIGHT 211
+#define STOP_PUMP	100
 
-//SoftwareSerial rf(9, 10); // TX -RX Port
-#ifdef ENABLE_DEBUG
+
 SoftwareSerial rf(8, 9); // TX -RX Port
-#else
-SoftwareSerial rf(9, 10); // TX -RX Port
-#endif // ENABLE_DEBUG
+
 
 
 RTC_DS1307 RTC;
 
-uint8_t devRelayAlter = 8; //alternate relay port
+//uint8_t devRelayAlter = 8; //alternate relay port
 uint8_t devRelay = 7;
 
 
-uint8_t startHour = 23; // pump start hour 0-23 (22:00-06:00 electric price per KW is  %50 off-price  for my country )
-uint8_t startMin = 10; // pump start Minute 0-59 
+uint8_t startHour = 22; // pump start hour 0-23 (22:00-06:00 electric price per KW is  %50 off-price  for my country )
+uint8_t startMin = 6; // pump start Minute 0-59 
 
 /*Pool full time  */
-uint8_t workHour = 3; // Working Time (Hour)
-uint8_t workMin = 30; // Working Time (Minute) (1-60)
+uint8_t workHour = 0; // Working Time (Hour)
+uint8_t workMin = 1; // Working Time (Minute) (1-60)
 
+#ifdef ENABLE_DEBUG
 unsigned long milStart; // start millis
 unsigned long taskStopTime; // 
 unsigned long taskDuration; //
+#endif // ENABLE_DEBUG
+
+
 
 //data&time vars.
 
@@ -99,95 +104,80 @@ uint16_t value = 0;
 
 
 void setup() {
-
 	Serial.begin(9600);
 	rf.begin(9600);
-
-	/*
-
-		Wire.begin();
-		digitalWrite(devRelay, HIGH); //relay close (for No(normally open) connection )
-		pinMode(devRelay, OUTPUT);
-		RTC.begin();
-		taskDuration = (calcSec(workHour, workMin) * 1000); // Working Time (Hour,Minute) to millis
-		//RTC.adjust(DateTime(2016, 07, 16, 21, 17, 40));
-
-	*/
-
-
+	Wire.begin();
+	digitalWrite(devRelay, HIGH); //relay close (for No(normally open) connection )
+	pinMode(devRelay, OUTPUT);
+	RTC.begin();
+	//taskDuration = (calcSec(workHour, workMin) * 1000); // Working Time (Hour,Minute) to millis
+	//RTC.adjust(DateTime(2016, 07, 16, 21, 17, 40));
 }
 
 void loop() {
-
-
-
+	digitalWrite(devRelay, HIGH);
 	value = CheckMessage();
 	pumpStatus = EEPROM.read(20);
 	taskType = EEPROM.read(24);
 
+	Serial.print(F("Pump Status : ")); Serial.println(pumpStatus);
+	Serial.print(F("Task Type : ")); Serial.println(taskType);
+	Serial.print(F("Value : ")); Serial.println(value);
 
+	DateTime now = RTC.now();
 
+	hourNow = now.hour();
+	minNow = now.minute();
+	dayNow = now.day();
+	monthNow = now.month();
+	yearNow = now.year();
+	secNow = now.second();
+
+	Serial.println(F("\n#### I N F O #########################"));
 	#ifdef ENABLE_DEBUG
-		Serial.print("Pump Status : "); Serial.println(pumpStatus);
-		Serial.print("Task Type : "); Serial.println(taskType);
+		
+		Serial.print(F("# lastMillis: "));
+		Serial.println(EEPROMReadlong(1));
+		Serial.print(F("# TaskStopTime: "));
+		Serial.println(EEPROMReadlong(5));
 	#endif // ENABLE_DEBUG
 
 
+	Serial.print(F("# Last work EndTime: "));
+	Serial.print(EEPROM.read(10)); Serial.print(F("-")); Serial.print(EEPROM.read(12)); Serial.print(F("-")); Serial.print(EEPROM.read(14));
+	Serial.print(F(" / ")); Serial.print(EEPROM.read(16)); Serial.print(F(":")); Serial.println(EEPROM.read(18));
+	Serial.println(F("######################################"));
+	Serial.println(F("******* D E B U G *************"));
+	Serial.print(F("* Date: "));
+	Serial.print(dayNow, DEC);
+	Serial.print(F(".")); Serial.print(monthNow, DEC);
+	Serial.print(F(".")); Serial.print(yearNow, DEC);
+	Serial.print(F(" / "));
+	Serial.print(hourNow, DEC);
+	Serial.print(F(":")); Serial.print(minNow, DEC);
+	Serial.print(F(":")); Serial.println(secNow, DEC);
 
 	#ifdef ENABLE_DEBUG
-		Serial.print("Value : "); Serial.println(value);
+		Serial.print(F("* taskDuration: "));
+		Serial.println(taskDuration);
 	#endif // ENABLE_DEBUG
 
 
-
-	/*
-
-
-
-
-	   DateTime now = RTC.now();
-
-	   hourNow = now.hour();
-	   minNow = now.minute();
-	   dayNow = now.day();
-	   monthNow = now.month();
-	   yearNow = now.year();
-	   secNow = now.second();
-
-	   Serial.println("#### I N F O #########################");
-	   Serial.print("# lastMillis: ");
-	   Serial.println(EEPROMReadlong(1));
-	   Serial.print("# TaskStopTime: ");
-	   Serial.println(EEPROMReadlong(5));
-	   Serial.print("# endTime: ");
-	   Serial.print(EEPROM.read(10)); Serial.print("-"); Serial.print(EEPROM.read(12)); Serial.print("-"); Serial.print(EEPROM.read(14));
-	   Serial.print(" / "); Serial.print(EEPROM.read(16)); Serial.print(":"); Serial.println(EEPROM.read(18));
-	   Serial.println("######################################");
-	   Serial.println("******* D E B U G *************");
-	   Serial.print("* Date: ");
-	   Serial.print(dayNow, DEC);
-	   Serial.print("."); Serial.print(monthNow, DEC);
-	   Serial.print("."); Serial.print(yearNow, DEC);
-	   Serial.print(" / ");
-	   Serial.print(hourNow, DEC);
-	   Serial.print(":"); Serial.print(minNow, DEC);
-	   Serial.print(":"); Serial.println(secNow , DEC);
-	   Serial.print("* taskDuration: ");
-	   Serial.println(taskDuration); /// ENABLE_DEBUG text
-	   Serial.print("* Current Millis: ");
-	   Serial.println(millis());
-	   Serial.println("******************************");
+	Serial.print(F("* Current Millis: "));
+	Serial.println(millis());
+	Serial.println(F("******************************\n"));
 
 
-	   */
 
-	
+
+
 	if ((value == STOP) || (taskType == STOP)) {
 
-		EEPROM.write(24, STOP);
+	
+		SendMessage(STOP);
 		StopPump();
 		#ifdef ENABLE_DEBUG
-				Serial.println(" - Pump is OFF");
+				Serial.println(F(" - Pump is OFF"));
 		#endif // ENABLE_DEBUG
 
 	}
@@ -195,36 +185,66 @@ void loop() {
 
 	if ((value == RUN_NOW) || (taskType == RUN_NOW)) {
 
-		EEPROM.write(24, RUN_NOW);
+		SendMessage(RUN_NOW);
+
+		
 		RunNow();
 		#ifdef ENABLE_DEBUG
-				Serial.println(" - Pump is ON");
+			Serial.println(F("Loop RUN_NOW STAGE 1: "));
 		#endif // ENABLE_DEBUG
 	}
 
 
 
-if ((value == RUN_NIGHT) || (taskType == RUN_NIGHT)) {
+	if ((value == RUN_NIGHT) || (taskType == RUN_NIGHT)) {
 
-		EEPROM.write(24, RUN_NIGHT);
+		SendMessage(RUN_NIGHT);
 		
-		
-		if ((((hourNow == 22) && (minNow >= 10)) || (hourNow == 0)) || (((hourNow >= 1) && (hourNow <= 5) && ((hourNow == 5) && (minNow <= 45))))) {
+	
+	
+		switch (hourNow){
+
+		case 22:
+			if (minNow >= 5) {
+				NightRun();
+				break;
+			}
+			break;
+		case 23:
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+			#ifdef ENABLE_DEBUG
+				Serial.println(F("Loop HOUR IS TRUE STAGE 1: "));
+			#endif // ENABLE_DEBUG
 			NightRun();
+			break;
+		case 5:
+			if (minNow >= 5) {
+				break;
+			}
+			break;
+
+		default:
+			break;
 		}
 
-
-		delay(5000);
-
-		hourNow = 22;
-		minNow = 11;
 		#ifdef ENABLE_DEBUG
-				Serial.println(" - Pump is waiting for Night Run");
+				Serial.println(F(" - Pump is waiting for Night Run"));
 		#endif // ENABLE_DEBUG
 	}
 
 
 }
+
+/*
+CheckMessage()
+
+Receiving Messages from Pool 
+*/
+
 
 uint16_t CheckMessage() {
 
@@ -237,117 +257,128 @@ uint16_t CheckMessage() {
 }
 
 void RunNow() {
+	pumpStatus = EEPROM.read(20);
+	taskType = EEPROM.read(24);
+	#ifdef ENABLE_DEBUG
+		Serial.println(F("RunNow()- STAGE 2: "));
+	#endif // ENABLE_DEBUG
+	
+	
+	if ((pumpStatus != PUMP_RUN_NIGHT)&&(taskType==RUN_NOW)) {
+		#ifdef ENABLE_DEBUG
+				Serial.println(F("RunNow()-PUMP NIGHT NOT RUN STAGE 3: "));
+		#endif // ENABLE_DEBUG
 
-	if ((pumpStatus != PUMP_RUN_NIGHT)) {
-
+				
 		digitalWrite(devRelay, LOW);
 		for (uint8_t i = 0; i < 4; i++) {
-			SendMessage(RUN_NOW);
+			SendMessage(PUMP_RUN_NOW);
 			delay(500);
 		}
-
-
-#ifdef ENABLE_DEBUG
-		Serial.println("RunNow()-if()");
-		Serial.print("Rec: "); Serial.println(value);
-		Serial.print("PUMP_RUN_NOW"); Serial.println(PUMP_RUN_NOW);
-#endif // ENABLE_DEBUG
-
+		for (;;) {
+			value = CheckMessage();
+			if (value == STOP) {
+				SendMessage(STOP);
+				break;
+			}
+		}
 	}
 	else {
-#ifdef ENABLE_DEBUG
-		Serial.print("Rec: "); Serial.println(value);
-		Serial.println("RunNow()-Else{} ");
-#endif // ENABLE_DEBUG
 
+		StopPump();
+		#ifdef ENABLE_DEBUG
+				Serial.print(F("Rec: ")); Serial.println(value);
+				Serial.println(F("RunNow()-Else{} "));
+		#endif // ENABLE_DEBUG
 	}
-
-
-
 }
 
 
 void NightRun() {
+	#ifdef ENABLE_DEBUG
+		Serial.println(F("NightRun()--- STAGE 2: "));
+	#endif // ENABLE_DEBUG
 
-#ifdef ENABLE_DEBUG
-
-	for (uint8_t i = 0; i < 2; i++) {
-		SendMessage(RUN_NIGHT);
-		delay(500);
-	}
-
-	for (;;) {
-
-		//delay(1000);
-		SendMessage(PUMP_RUN_NIGHT);
-		delay(1000);
 		
-		Serial.println("PUMP WORK FOR NIGHT....");
-		value = CheckMessage();
-		if (value == 10) {
-			StopPump();
-			break;
-		}
+	#ifdef ENABLE_DEBUG
+		Serial.print(F("Rec: ")); Serial.println(value);
+		Serial.print(("RUN_NIGHT: ")); Serial.println(RUN_NIGHT);
+	#endif // ENABLE_DEBUG;
 
+	DateTime now = RTC.now();
+	for (uint8_t i = 0; i < 5; i++) {
+		SendMessage(PUMP_RUN_NIGHT);
 	}
-	Serial.print("Rec: "); Serial.println(value);
-	Serial.print("RUN_NIGHT: "); Serial.println(RUN_NIGHT);
-#endif // ENABLE_DEBUG;
+	
+	pumpStatus = EEPROM.read(20);
+	taskType = EEPROM.read(24);
 
-
-	/*
-
-		if ((hourNow == startHour)||(pumpStatus==PUMP_RUN_NIGHT)) {
+	/*if ((now.hour() == startHour) || (pumpStatus == PUMP_RUN_NIGHT)) {
+		Serial.println("nightRun()-START HOUR STAGE 3: ");
 		milStart = (millis()); //First Run (millisecond)
 		taskStopTime = milStart + taskDuration; // task End time calculation
-
-		if ((minNow == startMin)||(pumpStatus==PUMP_RUN_NIGHT) ) {
+		*/
+		if (pumpStatus == PUMP_RUN_NIGHT) {
+			#ifdef ENABLE_DEBUG
+						Serial.println(F("nightRun()-START MINUTE STAGE 4: "));
+			#endif // ENABLE_DEBUG
+						
+			
 			for (;;) {
-			//	delay(1000);
-				Serial.println("========== D E B U G =================");
-				Serial.print("= MilStart: ");
-				Serial.println(milStart);
-				Serial.print("= Current Millis: ");
-				Serial.println(millis());
-				Serial.print("= taskStopTime: ");
-				Serial.println(taskStopTime);
+				hourNow = now.hour();
+				minNow = now.minute();
+				dayNow = now.day();
+				monthNow = now.month();
+				yearNow = now.year();
+				secNow = now.second();
+				delay(500);
 
-				if ((millis()) < taskStopTime) {
-					Serial.println("= Pump is Running...");
+				#ifdef ENABLE_DEBUG
+					Serial.println(F("========== D E B U G ================="));
+					Serial.print(F("= MilStart: "));
+					Serial.println(milStart);
+					Serial.print(F("= Current Millis: "));
+					Serial.println(millis());
+					Serial.print(F("= taskStopTime: "));
+					Serial.println(taskStopTime);
+
+				#endif // ENABLE_DEBUG
+
+				value = CheckMessage();
+				if (value != STOP) {
+					#ifdef ENABLE_DEBUG
+
+							Serial.println(F("= Pump is Running..."));
+					#endif // ENABLE_DEBUG
+
 					digitalWrite(devRelay, LOW);
-					EEPROMWritelong(1, millis());
-					EEPROMWritelong(5, taskStopTime);
-					EEPROM.write(10, now.day());
-					EEPROM.write(12, now.month());
-					EEPROM.write(14, (now.year() - 2000));
-					EEPROM.write(16, now.hour());
-					EEPROM.write(18, now.minute());
+
+					#ifdef ENABLE_DEBUG
+						EEPROMWritelong(1, millis());
+						EEPROMWritelong(5, taskStopTime);
+					#endif // ENABLE_DEBUG
+
+
+					EEPROM.write(10, dayNow);
+					EEPROM.write(12, monthNow);
+					EEPROM.write(14, (yearNow - 2000));
+					EEPROM.write(16, hourNow);
+					EEPROM.write(18, minNow);
 					SendMessage(PUMP_RUN_NIGHT);
+					
+
 					}
+
 
 				else {
+
+					StopPump();
 					break;
-					digitalWrite(devRelay, HIGH);
 
-					for (uint8_t i=0;i<5;i++) {
-
-					SendMessage(100);
-					delay(500);
-					}
 				}
 			}
 		}
-		else {
-			digitalWrite(devRelay, HIGH);
 
-			for (uint8_t i=0;i<5;i++) {
-				SendMessage(100);
-				delay(500);
-			}
-			Serial.println("* Pump does NOT Work...");
-		}
-
-	*/
 }
 
 
@@ -384,72 +415,66 @@ long EEPROMReadlong(long address)
 
 /*
  SendMessage()
-
+ Sending Messages to Pool
 */
 void SendMessage(uint8_t msg) {
-
 	switch (msg)
 	{
 	case RUN_NOW:
 		rf.write(RUN_NOW);
 		//pumpStatus = PUMP_RUN_NOW;
-#ifdef ENABLE_DEBUG
+
 		EEPROM.write(20, PUMP_RUN_NOW);
 		EEPROM.write(24, RUN_NOW);
-#endif // ENABLE_DEBUG
+
 
 		rf.flush();
 		break;
 	case RUN_NIGHT:
 
 		rf.write(RUN_NIGHT);
-#ifdef ENABLE_DEBUG
+
 
 		EEPROM.write(24, RUN_NIGHT); //task type
-#endif // ENABLE_DEBUG
+
 		rf.flush();
 		break;
 	case PUMP_RUN_NIGHT:
 		rf.write(PUMP_RUN_NIGHT); // pump is now runing for night task
 		//pumpStatus = PUMP_RUN_NIGHT;
-#ifdef ENABLE_DEBUG
+
 		EEPROM.write(20, PUMP_RUN_NIGHT);// pump status
 		EEPROM.write(24, RUN_NIGHT); //task type
-#endif // ENABLE_DEBUG
+
 
 		rf.flush();
 		break;
 	case PUMP_RUN_NOW:
 		rf.write(PUMP_RUN_NOW);
 		//pumpStatus = PUMP_RUN_NOW;
-#ifdef ENABLE_DEBUG
+
 		EEPROM.write(20, PUMP_RUN_NOW);
 		EEPROM.write(24, RUN_NOW);
-#endif // ENABLE_DEBUG
+
 
 		rf.flush();
 		break;
-	case 100:
+	case STOP_PUMP:
 		rf.write(100);
-#ifdef ENABLE_DEBUG
+
 		EEPROM.write(20, 100);
 		EEPROM.write(24, 10);
-#endif // ENABLE_DEBUG
+
 		break;
 
 	case STOP:
 		rf.write(10);
-#ifdef ENABLE_DEBUG
 		EEPROM.write(20, 100);
 		EEPROM.write(24, 10);
-#endif // ENABLE_DEBUG
 		break;
 	default:
 		break;
 	}
-
-
-
 }
 
 /**
@@ -457,6 +482,8 @@ Calc second
 @INPUT: Hour,Minute (integer)
 @OUT: second
 */
+
+/*
 long calcSec(uint8_t hh, uint8_t mm) {
 	int m;
 	int h;
@@ -476,17 +503,20 @@ long calcSec(uint8_t hh, uint8_t mm) {
 	h = hh * 3600;
 	m = mm * 60;
 	return (h + m);
-}
+}*/
 
 void StopPump() {
-
 	digitalWrite(devRelay, HIGH);
 
 	for (uint8_t i = 0; i < 5; i++) {
 		SendMessage(100);
 		delay(500);
 	}
+	EEPROM.write(20, 255);
+	EEPROM.write(24, 255);
+	#ifdef ENABLE_DEBUG
+		Serial.println(F("* Pump does NOT Work..."));
+	#endif // ENABLE_DEBUG
 
-	Serial.println("* Pump does NOT Work...");
-
+	
 }

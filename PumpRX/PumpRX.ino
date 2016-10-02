@@ -46,12 +46,13 @@
 
 
 
-//#define ENABLE_DEBUG
+#define ENABLE_DEBUG
 #define RUN_NOW		11
 #define RUN_NIGHT	21
 #define STOP	10
 #define PUMP_RUN_NOW 111
 #define PUMP_RUN_NIGHT 211
+#define PUMP_WAIT_NIGHT 210
 #define STOP_PUMP	100
 
 
@@ -173,8 +174,8 @@ void loop() {
 
 	if ((value == STOP) || (taskType == STOP)) {
 
-	
-		SendMessage(STOP);
+		taskType = 10;
+		pumpStatus = 100;
 		StopPump();
 		#ifdef ENABLE_DEBUG
 				Serial.println(F(" - Pump is OFF"));
@@ -185,23 +186,23 @@ void loop() {
 
 	if ((value == RUN_NOW) || (taskType == RUN_NOW)) {
 
-		SendMessage(RUN_NOW);
-
-		
+		SendMessage(RUN_NOW);	
 		RunNow();
+
+
 		#ifdef ENABLE_DEBUG
 			Serial.println(F("Loop RUN_NOW STAGE 1: "));
 		#endif // ENABLE_DEBUG
 	}
 
 
-
+//	Serial.println("RUN_NIGHT-STAGE 1: ");
 	if ((value == RUN_NIGHT) || (taskType == RUN_NIGHT)) {
-
-		SendMessage(RUN_NIGHT);
+		//hourNow = 21;
 		
-	
-	
+
+		//Serial.println("RUN_NIGHT-STAGE 2: ");
+
 		switch (hourNow){
 
 		case 22:
@@ -226,14 +227,33 @@ void loop() {
 				break;
 			}
 			break;
+		case 6:
+		case 7:
+		case 9:
+		case 10:
+		case 11:
+		case 12:
+		case 13:
+		case 14:
+		case 15:
+		case 16:
+		case 17:
+		case 18:
+		case 19:
+		case 20:
+		case 21:
+			SendMessage(RUN_NIGHT);
+			//Serial.println("RUN_NIGHT-STAGE 3: waiting for Night Run");
+			#ifdef ENABLE_DEBUG
+				Serial.println(F(" - Pump is waiting for Night Run"));
+			#endif // ENABLE_DEBUG*
+				break;
 
 		default:
+
 			break;
 		}
 
-		#ifdef ENABLE_DEBUG
-				Serial.println(F(" - Pump is waiting for Night Run"));
-		#endif // ENABLE_DEBUG
 	}
 
 
@@ -271,14 +291,19 @@ void RunNow() {
 
 				
 		digitalWrite(devRelay, LOW);
-		for (uint8_t i = 0; i < 4; i++) {
+		
+		for (uint8_t i = 0; i < 2; i++) {
 			SendMessage(PUMP_RUN_NOW);
-			delay(500);
+			delay(250);
 		}
 		for (;;) {
 			value = CheckMessage();
+			pumpStatus = EEPROM.read(20);
+			taskType = EEPROM.read(24);
+			Serial.println(F("PUMP_IS_RUNNING"));
 			if (value == STOP) {
-				SendMessage(STOP);
+				StopPump();
+				Serial.println(F("PUMP_IS_STOPING"));
 				break;
 			}
 		}
@@ -302,12 +327,13 @@ void NightRun() {
 		
 	#ifdef ENABLE_DEBUG
 		Serial.print(F("Rec: ")); Serial.println(value);
-		Serial.print(("RUN_NIGHT: ")); Serial.println(RUN_NIGHT);
+		Serial.print(F("RUN_NIGHT: ")); Serial.println(RUN_NIGHT);
 	#endif // ENABLE_DEBUG;
 
 	DateTime now = RTC.now();
-	for (uint8_t i = 0; i < 5; i++) {
+	for (uint8_t i = 0; i < 2; i++) {
 		SendMessage(PUMP_RUN_NIGHT);
+		delay(250);
 	}
 	
 	pumpStatus = EEPROM.read(20);
@@ -343,7 +369,7 @@ void NightRun() {
 					Serial.println(taskStopTime);
 
 				#endif // ENABLE_DEBUG
-
+				Serial.println(F("PUMP_IS_RUNNING"));
 				value = CheckMessage();
 				if (value != STOP) {
 					#ifdef ENABLE_DEBUG
@@ -365,14 +391,16 @@ void NightRun() {
 					EEPROM.write(16, hourNow);
 					EEPROM.write(18, minNow);
 					SendMessage(PUMP_RUN_NIGHT);
+					pumpStatus = EEPROM.read(20);
+					taskType = EEPROM.read(24);
 					
-
 					}
 
 
 				else {
 
 					StopPump();
+					Serial.println(F("PUMP_IS_STOPING"));
 					break;
 
 				}
@@ -420,6 +448,11 @@ long EEPROMReadlong(long address)
 void SendMessage(uint8_t msg) {
 	switch (msg)
 	{
+	/*case PUMP_WAIT_NIGHT:
+		rf.write(PUMP_WAIT_NIGHT);
+		
+		EEPROM.write(24, RUN_NIGHT); //task type
+		break;*/
 	case RUN_NOW:
 		rf.write(RUN_NOW);
 		//pumpStatus = PUMP_RUN_NOW;
@@ -432,9 +465,9 @@ void SendMessage(uint8_t msg) {
 		break;
 	case RUN_NIGHT:
 
-		rf.write(RUN_NIGHT);
+		rf.write(PUMP_WAIT_NIGHT);
 
-
+		EEPROM.write(20, PUMP_WAIT_NIGHT);// pump status
 		EEPROM.write(24, RUN_NIGHT); //task type
 
 		rf.flush();
@@ -509,7 +542,7 @@ void StopPump() {
 	digitalWrite(devRelay, HIGH);
 
 	for (uint8_t i = 0; i < 5; i++) {
-		SendMessage(100);
+		SendMessage(STOP_PUMP);
 		delay(500);
 	}
 	EEPROM.write(20, 255);

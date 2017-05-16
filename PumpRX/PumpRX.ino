@@ -66,6 +66,8 @@ RTC_DS1307 RTC;
 uint8_t devRelay = 7;
 
 
+
+
 uint8_t startHour = 22; // pump start hour 0-23 (22:00-06:00 electric price per KW is  %50 off-price  for my country )
 uint8_t startMin = 6; // pump start Minute 0-59 
 
@@ -110,6 +112,8 @@ void setup() {
 	Wire.begin();
 	digitalWrite(devRelay, HIGH); //relay close (for No(normally open) connection )
 	pinMode(devRelay, OUTPUT);
+	pinMode(A0, OUTPUT);    // Status PinOut
+
 	RTC.begin();
 	//taskDuration = (calcSec(workHour, workMin) * 1000); // Working Time (Hour,Minute) to millis
 	//RTC.adjust(DateTime(2016, 07, 16, 21, 17, 40));
@@ -297,6 +301,13 @@ void RunNow() {
 			delay(250);
 		}
 		for (;;) {
+			unsigned long currentMil = 0; 
+			unsigned long previousMil = 0;
+			uint16_t interval = 500;
+			bool stateOfStatusLed = false;
+
+
+
 			value = CheckMessage();
 			pumpStatus = EEPROM.read(20);
 			taskType = EEPROM.read(24);
@@ -306,6 +317,16 @@ void RunNow() {
 				Serial.println(F("PUMP_IS_STOPING"));
 				break;
 			}
+
+			/* Status Led BEGIN */
+			currentMil = millis();
+			if ((unsigned long)(currentMil - previousMil) >= interval) {
+				stateOfStatusLed = !stateOfStatusLed;
+				digitalWrite(A0, stateOfStatusLed);
+				previousMil = millis();
+			}
+			/* Status Led END*/
+		
 		}
 	}
 	else {
@@ -545,8 +566,8 @@ void StopPump() {
 		SendMessage(STOP_PUMP);
 		delay(500);
 	}
-	EEPROM.write(20, 255);
-	EEPROM.write(24, 255);
+	//EEPROM.write(20, STOP_PUMP);
+	//EEPROM.write(24, STOP_PUMP);
 	#ifdef ENABLE_DEBUG
 		Serial.println(F("* Pump does NOT Work..."));
 	#endif // ENABLE_DEBUG

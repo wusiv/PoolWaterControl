@@ -56,9 +56,12 @@
 #define STOP_PUMP 100
 #define PUMP_WAIT_NIGHT 210
 
-uint8_t btnRun = 10;  //start stop buton
-uint8_t btnNight = 2; // night start stop button
-uint8_t wtrSen = 3;
+uint8_t btnRun = 10;  //start stop buton pin
+uint8_t btnNight = 2; // night start stop button pin
+uint8_t wtrSen = 3;  // water sensor pin
+
+
+
 bool buttonState = 0;
 uint8_t push = 0;
 uint8_t nightPush = 0;
@@ -66,10 +69,14 @@ bool nightButtonState = false;
 bool isFull = false;
 bool runFlag = 0;
 bool nightFlag = 0;
-SoftwareSerial rf(8, 9);
 uint16_t messageTmp=0;
 uint8_t LastMessage=0;
+uint8_t poolCount = 0;
 
+
+
+
+SoftwareSerial rf(8, 9);
 
 
 
@@ -95,7 +102,7 @@ void setup()
 		Serial.println(EEPROM.read(11));
 	#endif // !ENABLE_DEBUG;
 	Serial.println(F("Starting...."));
-
+	
 	delay(2000);
 
 
@@ -131,7 +138,8 @@ void loop()
 
 
 
-
+	poolCount = EEPROM.read(13);
+	Serial.print(F("- Pool Count: ")); Serial.println(poolCount);
 
 	LastMessage = EEPROM.read(3);
 	Serial.print(millis()); Serial.print(F(" - LastMessage: ")); Serial.println(LastMessage);
@@ -216,6 +224,12 @@ void loop()
 		if ((isFull)) {
 			Serial.println(F("POOL_IS_FULL\n"));
 			waterLevel();
+		#ifndef ENABLE_DEBUG
+				EEPROM.write(13, (poolCount + 1));
+		#endif // !ENABLE_DEBUG
+
+			
+
 		}
 		else {
 			digitalWrite(A0, LOW);

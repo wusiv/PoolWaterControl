@@ -46,7 +46,7 @@
 
 
 
-#define ENABLE_DEBUG
+//#define ENABLE_DEBUG
 #define RUN_NOW		11
 #define RUN_NIGHT	21
 #define STOP	10
@@ -60,7 +60,7 @@ SoftwareSerial rf(8, 9); // TX -RX Port
 
 
 
-RTC_DS1307 RTC;
+PCF8563 RTC;
 
 //uint8_t devRelayAlter = 8; //alternate relay port
 uint8_t devRelay = 7;
@@ -101,7 +101,7 @@ uint8_t taskType = 0; // task type RUN_NOW= Run now, RUN_NIGHT =RunNight
 uint8_t pumpStatus = 0; // 111=Pump is Runing PUMP_RUN_NIGHT=Pump is runing for night
 uint8_t commandType = 0;
 uint16_t value = 0;
-
+uint16_t interval = 500; // Led Interval
 
 
 
@@ -115,8 +115,13 @@ void setup() {
 	pinMode(A0, OUTPUT);    // Status PinOut
 
 	RTC.begin();
+	if (!RTC.isrunning()) {
+		Serial.println("CLOCK MODULE DOES NOT WORK....");
+	}
 	//taskDuration = (calcSec(workHour, workMin) * 1000); // Working Time (Hour,Minute) to millis
-	//RTC.adjust(DateTime(2016, 07, 16, 21, 17, 40));
+	//RTC.adjust(DateTime(2017, 05, 21, 19, 16, 15));
+	
+
 }
 
 void loop() {
@@ -129,14 +134,7 @@ void loop() {
 	Serial.print(F("Task Type : ")); Serial.println(taskType);
 	Serial.print(F("Value : ")); Serial.println(value);
 
-	DateTime now = RTC.now();
-
-	hourNow = now.hour();
-	minNow = now.minute();
-	dayNow = now.day();
-	monthNow = now.month();
-	yearNow = now.year();
-	secNow = now.second();
+	TimeStatus();
 
 	Serial.println(F("\n#### I N F O #########################"));
 	#ifdef ENABLE_DEBUG
@@ -301,32 +299,29 @@ void RunNow() {
 			delay(250);
 		}
 		for (;;) {
-			unsigned long currentMil = 0; 
-			unsigned long previousMil = 0;
-			uint16_t interval = 500;
-			bool stateOfStatusLed = false;
 
 
+			TimeStatus();
 
 			value = CheckMessage();
 			pumpStatus = EEPROM.read(20);
 			taskType = EEPROM.read(24);
 			Serial.println(F("PUMP_IS_RUNNING"));
+			Serial.print(F("* Date: "));
+			Serial.print(dayNow, DEC);
+			Serial.print(F(".")); Serial.print(monthNow, DEC);
+			Serial.print(F(".")); Serial.print(yearNow, DEC);
+			Serial.print(F(" / "));
+			Serial.print(hourNow, DEC);
+			Serial.print(F(":")); Serial.print(minNow, DEC);
+			Serial.print(F(":")); Serial.println(secNow, DEC);
 			if (value == STOP) {
 				StopPump();
 				Serial.println(F("PUMP_IS_STOPING"));
 				break;
 			}
+			StatusLed();
 
-			/* Status Led BEGIN */
-			currentMil = millis();
-			if ((unsigned long)(currentMil - previousMil) >= interval) {
-				stateOfStatusLed = !stateOfStatusLed;
-				digitalWrite(A0, stateOfStatusLed);
-				previousMil = millis();
-			}
-			/* Status Led END*/
-		
 		}
 	}
 	else {
@@ -338,8 +333,31 @@ void RunNow() {
 		#endif // ENABLE_DEBUG
 	}
 }
+void StatusLed() {
 
+	unsigned long currentMil = 0;
+	unsigned long previousMil = 0;
+	bool stateOfStatusLed = false;
 
+	/* Status Led BEGIN */
+	currentMil = millis();
+	if ((unsigned long)(currentMil - previousMil) >= interval) {
+		stateOfStatusLed = !stateOfStatusLed;
+		digitalWrite(A0, stateOfStatusLed);
+		previousMil = millis();
+	}
+	/* Status Led END*/
+
+}
+void TimeStatus() {
+	DateTime now = RTC.now();
+	hourNow = now.hour();
+	minNow = now.minute();
+	dayNow = now.day();
+	monthNow = now.month();
+	yearNow = now.year();
+	secNow = now.second();
+}
 void NightRun() {
 	#ifdef ENABLE_DEBUG
 		Serial.println(F("NightRun()--- STAGE 2: "));
@@ -351,7 +369,7 @@ void NightRun() {
 		Serial.print(F("RUN_NIGHT: ")); Serial.println(RUN_NIGHT);
 	#endif // ENABLE_DEBUG;
 
-	DateTime now = RTC.now();
+	
 	for (uint8_t i = 0; i < 2; i++) {
 		SendMessage(PUMP_RUN_NIGHT);
 		delay(250);
@@ -372,12 +390,8 @@ void NightRun() {
 						
 			
 			for (;;) {
-				hourNow = now.hour();
-				minNow = now.minute();
-				dayNow = now.day();
-				monthNow = now.month();
-				yearNow = now.year();
-				secNow = now.second();
+				TimeStatus();
+
 				delay(500);
 
 				#ifdef ENABLE_DEBUG

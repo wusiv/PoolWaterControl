@@ -40,7 +40,7 @@
 */
 
 /* pull down resistor
-*  Pull-Down Resistor. 
+*  Pull-Down Resistor.
 */
 
 #include <EEPROM.h>
@@ -69,8 +69,8 @@ bool nightButtonState = false;
 bool isFull = false;
 bool runFlag = 0;
 bool nightFlag = 0;
-uint16_t messageTmp=0;
-uint8_t LastMessage=0;
+uint16_t messageTmp = 0;
+uint8_t LastMessage = 0;
 uint8_t poolCount = 0;
 
 
@@ -97,193 +97,227 @@ void setup()
 	digitalWrite(A3, HIGH);
 
 	#ifdef ENABLE_DEBUG;
-		Serial.println(EEPROM.read(9));
-		Serial.println(isFull);
-		Serial.println(EEPROM.read(11));
+	Serial.println(EEPROM.read(9));
+	Serial.println(isFull);
+	Serial.println(EEPROM.read(11));
 	#endif // !ENABLE_DEBUG;
 	Serial.println(F("Starting...."));
-	
+
 	delay(2000);
 
 
-	
+
 }
 
 void loop()
 {
 	//Serial.print("\nbuttonState1: "); Serial.println(buttonState);
-	messageTmp = CheckMessage();
-
-		
-		switch (messageTmp) {
-		case PUMP_RUN_NIGHT:
-			EEPROM.write(3, PUMP_RUN_NIGHT);
-
-			break;
-		case STOP_PUMP:
-			EEPROM.write(3, STOP_PUMP);
-
-			break;
-		case PUMP_RUN_NOW:
-			EEPROM.write(3, PUMP_RUN_NOW);
-
-			break;
-		case PUMP_WAIT_NIGHT:
-			EEPROM.write(3, PUMP_WAIT_NIGHT);
-			break;
-		default:
-			break;
-		}
+	
 
 
 
+	MessageTempOrganizer();
 
-	poolCount = EEPROM.read(13);
+	LastMessageOrganizer();
+
+
+	//poolCount = EEPROM.read(13);
 	Serial.print(F("- Pool Count: ")); Serial.println(poolCount);
-
-	LastMessage = EEPROM.read(3);
-	Serial.print(millis()); Serial.print(F(" - LastMessage: ")); Serial.println(LastMessage);
-		if (LastMessage == PUMP_RUN_NOW) {
-			#ifdef ENABLE_DEBUG
-				Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
-				Serial.println(F("RED LED HIGH"));
-			#endif // ENABLE_DEBUG
-			digitalWrite(A2, HIGH);
-			delay(250);
-			digitalWrite(A2, LOW);
-			LastMessage = 0;
-			delay(250);
-			Serial.println(F("PUMP_RUNING_NOW\n"));
-
-		}
-		else {
-			#ifdef ENABLE_DEBUG
-						Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
-						Serial.println(F("RED LED LOW"));
-			#endif // ENABLE_DEBUG
-
-
-			digitalWrite(A2, LOW);
-
-		}
-		
-		if (LastMessage == PUMP_RUN_NIGHT) {
-			#ifdef ENABLE_DEBUG
-						Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
-						Serial.println(F("GREEN LED HIGH"));
-			#endif // ENABLE_DEBUG
-			digitalWrite(A1, HIGH);
-			delay(250);
-			digitalWrite(A1, LOW);
-			LastMessage = 0;
-			delay(250);
-			Serial.println(F("PUMP_IS_RUN_FOR_NIGHT\n"));
-		}
-		else {
-			#ifdef ENABLE_DEBUG
-						Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
-						Serial.println(F(" GREEN LED LOW"));
-			#endif // ENABLE_DEBUG
-			
-			digitalWrite(A1, LOW);
-		}
-
-
-		if (LastMessage == STOP_PUMP) {
-			#ifdef ENABLE_DEBUG
-						Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
-						Serial.println(F("Run and Night LEDs is LOW"));
-			#endif // ENABLE_DEBUG
-			digitalWrite(A2, LOW);
-			digitalWrite(A1, LOW);
-
-		}
-		
-		if (LastMessage == PUMP_WAIT_NIGHT) {
-			#ifdef ENABLE_DEBUG
-						Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
-						Serial.println(F("GREEN LED HIGH"));
-			#endif // ENABLE_DEBUG
-			digitalWrite(A1, HIGH);
-			Serial.println(F("PUMP_IS_WAIT_NIGHT\n"));
-		}
-		else {
-			#ifdef ENABLE_DEBUG
-						Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
-						Serial.println(F(" GREEN LED LOW"));
-			#endif // ENABLE_DEBUG
-			
-			digitalWrite(A1, LOW);
-		}
-
-		
-		
-		isFull = digitalRead(wtrSen);
 	
-		//Serial.print("isFull: "); Serial.println(isFull);
-		if ((isFull)) {
-			Serial.println(F("POOL_IS_FULL\n"));
-			waterLevel();
-		#ifndef ENABLE_DEBUG
-				EEPROM.write(13, (poolCount + 1));
-		#endif // !ENABLE_DEBUG
 
-			
 
-		}
-		else {
-			digitalWrite(A0, LOW);
-		}
-		
-	
-		buttonState = digitalRead(btnRun);
-		//Serial.print("buttonState 3: "); Serial.println(buttonState);
-		if (buttonState) {
-			//Serial.println("Run STAGE :1 ");
-			
-			RunNow();
-		}
+	isFull = digitalRead(wtrSen);
 
-		nightButtonState = digitalRead(btnNight);
-		if (nightButtonState) {
-			RunNight();
-		}
+	//Serial.print("isFull: "); Serial.println(isFull);
+	if ((isFull)) {
+		Serial.println(F("POOL_IS_FULL\n"));
+		waterLevel();
+	/*	#ifndef ENABLE_DEBUG
+		EEPROM.write(13, (poolCount + 1));
+		#endif // !ENABLE_DEBUG*/
 
 
 
 	}
+	else {
+		digitalWrite(A0, LOW);
+	}
+
+
+	buttonState = digitalRead(btnRun);
+	//Serial.print("buttonState 3: "); Serial.println(buttonState);
+	if (buttonState) {
+		//Serial.println("Run STAGE :1 ");
+
+		RunNow();
+	}
+
+	nightButtonState = digitalRead(btnNight);
+	if (nightButtonState) {
+		RunNight();
+	}
 
 
 
-	
-		
-		
-		
+}
+
+
 /*
- SendCommand();
- Sending Commands to Pump
-*/	
+LastMessageOrganizer()
+Organize LED States 
 
-void SendCommand(uint16_t status) {
-	rf.write(status);
-/*	switch (status)
-	{
-	case RUN_NOW:
-	//	EEPROM.write(2, RUN_NOW);
+*/
+void LastMessageOrganizer() {
+
+	LastMessage = EEPROM.read(3);
+	Serial.print(millis()); Serial.print(F(" - LastMessage: ")); Serial.println(LastMessage);
+	if (LastMessage == PUMP_RUN_NOW) {
+		#ifdef ENABLE_DEBUG
+		Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
+		Serial.println(F("RED LED HIGH"));
+		#endif // ENABLE_DEBUG
+		digitalWrite(A2, HIGH);
+		delay(250);
+		digitalWrite(A2, LOW);
+		//LastMessage = 0;
+		delay(250);
+		Serial.println(F("PUMP_RUNING_NOW\n"));
+
+	}
+	else {
+		#ifdef ENABLE_DEBUG
+		Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
+		Serial.println(F("RED LED LOW"));
+		#endif // ENABLE_DEBUG
+
+
+		digitalWrite(A2, LOW);
+
+	}
+
+	if (LastMessage == PUMP_RUN_NIGHT) {
+		#ifdef ENABLE_DEBUG
+		Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
+		Serial.println(F("GREEN LED HIGH"));
+		#endif // ENABLE_DEBUG
+		digitalWrite(A1, HIGH);
+		delay(250);
+		digitalWrite(A1, LOW);
+		//LastMessage = 0;
+		delay(250);
+		Serial.println(F("PUMP_IS_RUN_FOR_NIGHT\n"));
+	}
+	else {
+		#ifdef ENABLE_DEBUG
+		Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
+		Serial.println(F(" GREEN LED LOW"));
+		#endif // ENABLE_DEBUG
+
+		digitalWrite(A1, LOW);
+	}
+
+
+	if (LastMessage == STOP_PUMP) {
+		#ifdef ENABLE_DEBUG
+		Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
+		Serial.println(F("Run and Night LEDs is LOW"));
+		#endif // ENABLE_DEBUG
+		digitalWrite(A2, LOW);
+		digitalWrite(A1, LOW);
+
+	}
+
+	if (LastMessage == PUMP_WAIT_NIGHT) {
+		#ifdef ENABLE_DEBUG
+		Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
+		Serial.println(F("GREEN LED HIGH"));
+		#endif // ENABLE_DEBUG
+		delay(250);
+		digitalWrite(A1, HIGH);
+		delay(250);
+		Serial.println(F("PUMP_IS_WAIT_NIGHT\n"));
+	}
+	else {
+		#ifdef ENABLE_DEBUG
+		Serial.print(F("LastMessage: ")); Serial.println(LastMessage);
+		Serial.println(F(" GREEN LED LOW"));
+		#endif // ENABLE_DEBUG
+
+		digitalWrite(A1, LOW);
+	}
+
+}
+
+
+/*
+MessageTempOrganizer()
+Receive message from pump Station 
+add to EEPROM,
+
+*/
+void MessageTempOrganizer() {
+
+	messageTmp = CheckMessage();
+
+
+	switch (messageTmp) {
+	case PUMP_RUN_NIGHT:
+		EEPROM.write(3, PUMP_RUN_NIGHT);
+		#ifndef ENABLE_DEBUG
+		Serial.print(F("- MessageTemp:PUMP_RUN_NIGHT: ")); Serial.println(EEPROM.read(3));
+		#endif // !ENABLE_DEBUG
 		break;
-	case RUN_NIGHT:
-		//EEPROM.write(2, RUN_NIGHT);
+	case STOP_PUMP:
+		EEPROM.write(3, STOP_PUMP);
+		#ifndef ENABLE_DEBUG
+		Serial.print(F("- MessageTemp:STOP_PUMP: ")); Serial.println(EEPROM.read(3));
+		#endif // !ENABLE_DEBUG
 		break;
-	case STOP:
-		//EEPROM.write(2, STOP);
+	case PUMP_RUN_NOW:
+		EEPROM.write(3, PUMP_RUN_NOW);
+		#ifndef ENABLE_DEBUG
+		Serial.print(F("- MessageTemp:PUMP_RUN_NOW ")); Serial.println(EEPROM.read(3));
+		#endif // !ENABLE_DEBUG
+		break;
+	case PUMP_WAIT_NIGHT:
+		EEPROM.write(3, PUMP_WAIT_NIGHT);
+		#ifndef ENABLE_DEBUG
+		Serial.print(F("- MessageTemp:PUMP_WAIT_NIGHT ")); Serial.println(EEPROM.read(3));
+		#endif // !ENABLE_DEBUG
 		break;
 	default:
 		break;
+	}
+
+}
+
+
+
+/*
+SendCommand();
+Sending Commands to Pump
+*/
+
+void SendCommand(uint16_t status) {
+	rf.write(status);
+	/*	switch (status)
+	{
+	case RUN_NOW:
+	//	EEPROM.write(2, RUN_NOW);
+	break;
+	case RUN_NIGHT:
+	//EEPROM.write(2, RUN_NIGHT);
+	break;
+	case STOP:
+	//EEPROM.write(2, STOP);
+	break;
+	default:
+	break;
 	}*/
-	
+
 	#ifdef ENABLE_DEBUG;
-		Serial.print(F("command : ")); Serial.println(status); //ENABLE_DEBUG;
-		Serial.println(F(""));
+	Serial.print(F("command : ")); Serial.println(status); //ENABLE_DEBUG;
+	Serial.println(F(""));
 	#endif // ENABLE_DEBUG;
 	rf.flush();
 	Serial.flush();
@@ -297,7 +331,7 @@ receiving  Messages  from pump
 */
 uint16_t CheckMessage() {
 	int msg = 0;
-	if (rf.available()>=1) {
+	if (rf.available() >= 1) {
 		msg = rf.read();
 		return msg;
 	}
@@ -309,20 +343,20 @@ uint16_t CheckMessage() {
 
 
 /*
-	waterLevel()
-	pool water Control 
-	
+waterLevel()
+pool water Control
+
 */
 
 void waterLevel() {
 
 	delay(1000);
-	
+
 	#ifdef ENABLE_DEBUG;
-			Serial.println(F("=====Water level==========="));//ENABLE_DEBUG;
+	Serial.println(F("=====Water level==========="));//ENABLE_DEBUG;
 	#endif // !ENABLE_DEBUG;
 
-	
+
 	digitalWrite(A0, HIGH);
 	if (LastMessage != STOP_PUMP) {
 		for (uint8_t i = 0; i < 2; i++) {
@@ -330,18 +364,18 @@ void waterLevel() {
 			delay(250);
 		}
 	}
-	
+
 
 	#ifdef ENABLE_DEBUG;
-			Serial.print(F("= IN night: ")); Serial.println(nightFlag);//ENABLE_DEBUG;
-			Serial.print(F("= IN RUN: ")); Serial.println(runFlag);//ENABLE_DEBUG;
+	Serial.print(F("= IN night: ")); Serial.println(nightFlag);//ENABLE_DEBUG;
+	Serial.print(F("= IN RUN: ")); Serial.println(runFlag);//ENABLE_DEBUG;
 	#endif // !ENABLE_DEBUG;
 
 
 	uint8_t tmpRun = EEPROM.read(11);
 	if (tmpRun) {
 		#ifdef ENABLE_DEBUG;
-					Serial.println(F("= push mod 2")); // ENABLE_DEBUG;
+		Serial.println(F("= push mod 2")); // ENABLE_DEBUG;
 		#endif // !ENABLE_DEBUG;
 
 
@@ -352,28 +386,28 @@ void waterLevel() {
 	uint8_t tmpNight = EEPROM.read(9);
 	if (tmpNight) {
 		#ifdef ENABLE_DEBUG;
-					Serial.println(F("= night push mod 2")); // ENABLE_DEBUG;
+		Serial.println(F("= night push mod 2")); // ENABLE_DEBUG;
 		#endif // !ENABLE_DEBUG;
 
 		EEPROM.write(9, 0);
 		digitalWrite(A2, LOW); // night
 
 	}
-		#ifdef ENABLE_DEBUG;
+	#ifdef ENABLE_DEBUG;
 
-				Serial.print(F("= Exit RUN: ")); Serial.println(runFlag); //ENABLE_DEBUG;
-				Serial.print(F("= Exit night: ")); Serial.println(nightFlag); //ENABLE_DEBUG;
-				Serial.println(F("=============================\n")); //ENABLE_DEBUG;
-		#endif // !ENABLE_DEBUG;
-	
-	
+	Serial.print(F("= Exit RUN: ")); Serial.println(runFlag); //ENABLE_DEBUG;
+	Serial.print(F("= Exit night: ")); Serial.println(nightFlag); //ENABLE_DEBUG;
+	Serial.println(F("=============================\n")); //ENABLE_DEBUG;
+	#endif // !ENABLE_DEBUG;
+
+
 }
-	/*
-	
-	RunNow()
-	Run pump 
-	
-	*/
+/*
+
+RunNow()
+Run pump
+
+*/
 void RunNow() {
 
 	nightPush = EEPROM.read(9);
@@ -386,10 +420,10 @@ void RunNow() {
 	if ((!(nightFlag)) && (!(isFull))) {
 		//Serial.println("RUN STAGE: 3 ");
 		#ifdef ENABLE_DEBUG;
-			Serial.println(F("##### BUTTON RUN #####"));//ENABLE_DEBUG;
-			Serial.print(F("\n# buttonState :")); Serial.println(buttonState);//ENABLE_DEBUG;
+		Serial.println(F("##### BUTTON RUN #####"));//ENABLE_DEBUG;
+		Serial.print(F("\n# buttonState :")); Serial.println(buttonState);//ENABLE_DEBUG;
 		#endif // !ENABLE_DEBUG;
-		//delay(300);
+																		  //delay(300);
 		push = EEPROM.read(11);
 		//Serial.print(F("RUN()-push 1 is : ")); Serial.println(push);
 		if (push >= 1) {
@@ -413,9 +447,9 @@ void RunNow() {
 				SendCommand(STOP);
 				delay(250);
 			}
-			
+
 			#ifdef ENABLE_DEBUG;
-				Serial.print(F("# Push : ")); Serial.print(push); Serial.print(F(" MOD: ")); Serial.println(runFlag);//ENABLE_DEBUG;
+			Serial.print(F("# Push : ")); Serial.print(push); Serial.print(F(" MOD: ")); Serial.println(runFlag);//ENABLE_DEBUG;
 			#endif // !ENABLE_DEBUG;
 
 		}
@@ -427,64 +461,64 @@ void RunNow() {
 				SendCommand(RUN_NOW);
 				delay(250);
 			}
-			
+
 
 			if (LastMessage == PUMP_RUN_NOW) {
 				#ifdef ENABLE_DEBUG;
-								Serial.print(F("MessageType ")); Serial.print(messageTmp);
+				Serial.print(F("MessageType ")); Serial.print(messageTmp);
 				#endif // !ENABLE_DEBUG;
 				digitalWrite(A2, HIGH);
 			}
-			
+
 			#ifdef ENABLE_DEBUG;
-				Serial.print(F("# Push : ")); Serial.print(push); Serial.print(F(" MOD: ")); Serial.println(runFlag);//ENABLE_DEBUG;
+			Serial.print(F("# Push : ")); Serial.print(push); Serial.print(F(" MOD: ")); Serial.println(runFlag);//ENABLE_DEBUG;
 			#endif // !ENABLE_DEBUG;
 
 		}
 		#ifdef ENABLE_DEBUG;
-			Serial.println(F("#########################\n"));//ENABLE_DEBUG;
+		Serial.println(F("#########################\n"));//ENABLE_DEBUG;
 		#endif // !ENABLE_DEBUG;
 
 	}
-	
+
 
 }
 
 
 /*
- RunNight()
- Run Pump for night 
+RunNight()
+Run Pump for night
 
 */
 void RunNight() {
 	push = EEPROM.read(11);
-	runFlag=(push % 2);
+	runFlag = (push % 2);
 	delay(300);
 	digitalWrite(A1, HIGH);
 	//Serial.print("NightRun STAGE :1 runFlag: "); Serial.println(runFlag);
 	if ((!(runFlag)) && (!(isFull))) {
 		//Serial.println("NightRun STAGE :2- RunFlag = 0, isFull=1 ");
 		#ifdef ENABLE_DEBUG;
-				Serial.println(F("\n******night BUTTON*******")); //ENABLE_DEBUG;
-				Serial.print(F("\n* nightButtonState :")); Serial.println(nightButtonState); //ENABLE_DEBUG;
+		Serial.println(F("\n******night BUTTON*******")); //ENABLE_DEBUG;
+		Serial.print(F("\n* nightButtonState :")); Serial.println(nightButtonState); //ENABLE_DEBUG;
 		#endif // !ENABLE_DEBUG; 
 
 		delay(300);
 		nightPush = EEPROM.read(9);
-	
-			if (nightPush >= 1) {
-				nightPush = 0;
-				EEPROM.write(9, nightPush);
-			}
-			else {
 
-				nightPush++;
-				EEPROM.write(9, nightPush);
-			}
-		
+		if (nightPush >= 1) {
+			nightPush = 0;
+			EEPROM.write(9, nightPush);
+		}
+		else {
+
+			nightPush++;
+			EEPROM.write(9, nightPush);
+		}
+
 
 		nightFlag = (nightPush % 2);
-		
+
 		if (nightFlag == 0) {
 			digitalWrite(A1, LOW);
 			//Serial.print("NightRun STAGE :3 CLOSE-nightFlag: "); Serial.println(nightFlag);
@@ -493,44 +527,44 @@ void RunNight() {
 				SendCommand(STOP);
 				delay(250);
 			}
-			
-				
-			
-				
+
+
+
+
 
 			#ifdef ENABLE_DEBUG;
-						//Serial.println((nightPush % 2));
-						Serial.print(F("* nightPush : ")); Serial.print(nightPush); Serial.print(F(" MOD : ")); Serial.println(nightFlag); //ENABLE_DEBUG;
+			//Serial.println((nightPush % 2));
+			Serial.print(F("* nightPush : ")); Serial.print(nightPush); Serial.print(F(" MOD : ")); Serial.println(nightFlag); //ENABLE_DEBUG;
 			#endif // !ENABLE_DEBUG;
 
 
 		}
 		else {
-			
+
 			for (uint8_t i = 0; i < 2; i++) {
-				
+
 				SendCommand(RUN_NIGHT);
 				delay(250);
 			}
 			Serial.println(F("RUN_PUMP_FOR_NIGHT"));
 			//Serial.print("NightRun STAGE :3 OPEN-nightFlag: "); Serial.println(nightFlag);
 			//messageTmp = CheckMessage();
-			
-			
+
+
 			if ((messageTmp == RUN_NIGHT)) {
 				digitalWrite(A1, HIGH);
-				
+
 			}
 
 			#ifdef ENABLE_DEBUG;
-						Serial.print(F("* nightPush : ")); Serial.print(nightPush); Serial.print(F(" MOD : ")); Serial.println(nightFlag); //ENABLE_DEBUG;
+			Serial.print(F("* nightPush : ")); Serial.print(nightPush); Serial.print(F(" MOD : ")); Serial.println(nightFlag); //ENABLE_DEBUG;
 			#endif // !ENABLE_DEBUG;
 
 
 		}
-	#ifdef ENABLE_DEBUG;
-			Serial.println(F("*************************\n")); //ENABLE_DEBUG;
-	#endif // ENABLE_DEBUG;
+		#ifdef ENABLE_DEBUG;
+		Serial.println(F("*************************\n")); //ENABLE_DEBUG;
+		#endif // ENABLE_DEBUG;
 
 
 
@@ -539,6 +573,6 @@ void RunNight() {
 
 
 
-	}
+}
 
-			
+

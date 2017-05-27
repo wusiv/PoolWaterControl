@@ -122,7 +122,7 @@ void loop()
 
 
 	//poolCount = EEPROM.read(13);
-	Serial.print(F("- Pool Count: ")); Serial.println(poolCount);
+	//Serial.print(F("- Pool Count: ")); Serial.println(poolCount);
 	
 
 

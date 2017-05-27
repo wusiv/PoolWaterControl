@@ -64,8 +64,8 @@ uint8_t startHour = 22; // pump start hour 0-23 (22:00-06:00 electric price per 
 uint8_t startMin = 6; // pump start Minute 0-59
 
 /*Pool full time  */
-uint8_t workHour = 0; // Working Time (Hour)
-uint8_t workMin = 1; // Working Time (Minute) (1-60)
+uint8_t workHour = 3; // Working Time (Hour)
+uint8_t workMin = 30; // Working Time (Minute) (1-60)
 
 unsigned long currentMillis; // start millis
 unsigned long preMillis; //

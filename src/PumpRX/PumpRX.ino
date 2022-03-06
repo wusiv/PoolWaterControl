@@ -55,7 +55,7 @@
 
 SoftwareSerial rf(8, 9); // TX -RX Port
 
-DS3231 RTC;
+RTC_PCF8523 RTC;
 
 //uint8_t devRelayAlter = 8; //alternate relay port
 uint8_t devRelay = 7;
@@ -63,8 +63,8 @@ uint8_t devRelay = 7;
 uint8_t startHour = 22; // pump start hour 0-23 (22:00-06:00 electric price per KW is  %50 off-price  for my country )
 uint8_t startMin = 6; // pump start Minute 0-59
 
-/*Pool full time  */
-uint8_t workHour = 3; // Working Time (Hour)
+/*Pool full time  dd*/
+uint8_t workHour = 3; // jjsWorking Time (Hour)
 uint8_t workMin = 30; // Working Time (Minute) (1-60)
 
 unsigned long currentMillis; // start millis

@@ -210,3 +210,8 @@ FakesAssemblies/
 GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
+/__vm/.PoolWaterControl.vsarduino.h
+/PoolWaterControl.sln
+/PoolWaterControl.vcxproj
+/PoolWaterControl.vcxproj.filters
+/src/arduino folders read me.txt
